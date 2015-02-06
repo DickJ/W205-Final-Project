@@ -1,4 +1,4 @@
-__author__ = 'rich'
+__author__ = 'Rich Johnson'
 
 from httplib import BadStatusLine
 import logging
