@@ -31,7 +31,7 @@ def get_recipe_links():
         Downloads individual recipe links from a recipe index page
         This functions pulls an item off of page_queue, requests the page,
         extracts the links to recipes from the page, and adds each link (as a
-        BeautifulSoupe object) to the queue links_queue
+        BeautifulSoup object) to the queue links_queue
         Parameters:
             page_queue: A queue of index pages containing links to recipes
             links_queue: a queue for placing urls for individual recipes
@@ -45,6 +45,7 @@ def get_recipe_links():
                          "%s" % page)
             recipe_list = BeautifulSoup(urllib2.urlopen(page).read())
             all_links = recipe_list.find_all('a')
+            url_re = re.compile('(^(?P<url>http://allrecipes.com/(r|R)ecipe/.+)/.*$)')
             for link in all_links:
                 try:
                     if (re.search(
@@ -53,8 +54,9 @@ def get_recipe_links():
                     ):
                         recipe_url = ''.join(('http://allrecipes.com',
                                               link['href']))
-                        recipe_url = re.sub(r'Detail\.aspx\?evt19=1', '',
-                                            recipe_url)
+                        # Remove the trailing parts of the url leaving only
+                        # http://allrecipes.com/Recipe/recipe-name/
+                        recipe_url = url_re.match(recipe_url).group(2)
                         logging.info("get_recipe_links():find_links(): adding"
                                      " link %s to links_queue" % recipe_url)
                         links_queue.put(recipe_url)
@@ -72,7 +74,7 @@ def get_recipe_links():
     numthreads = 8
     logging.info("get_recipe_links(): Number of threads = %d" % numthreads)
 
-    for i in range(1, 2525):  # 2525 is currently the last page. (15 Jan 15)
+    for i in range(1, 2522):  # 2521 is currently the last page. (16 Feb 15)
         url = 'http://allrecipes.com/recipes/main.aspx?Page=' + str(i) + \
               '#recipes'
         recipe_list_pages.put(url)
@@ -158,22 +160,46 @@ def download_recipes(recipe_links):
 
 
 def dump_queue(queue):
+    """
+    Takes a Queue and returns it as a list
+
+    This function is pretty straightforward with the one problem that
+    queue.get() removes the results from the queue. This is remedied by
+    re-enqueuing each item before returning from the function.
+
+    :param queue: A Queue of items
+    :return: a list containing the contents of queue
+    """
     result = []
+    # This is going to empty the queue, as such, we will need to requeue
+    # everything before returning from this function
     while not queue.empty():
         result.append(queue.get())
+    for entry in result:
+        queue.put(entry)
     return result
 
 
 if __name__ == '__main__':
+    # Set up directory structure to ensure no errors are thrown
+    if not os.path.exists("./recipes/allrecipes"):
+        os.makedirs("./recipes/allrecipes")  # makedirs is recursive
+    if not os.path.exists("./logs/"):
+        os.mkdir("./logs/")
+    if not os.path.exists("./data/"):
+        os.mkdir("./data/")
+
 
     RUN_LOG = ''.join(('logs/run_log_', str(time.time()), '.log'))
-    RECIPE_LINKS_PICKLE_FILE = 'logs/recipe_links.pkl'
+    RECIPE_LINKS_PICKLE_FILE = 'data/recipe_links.pkl'
     a = Queue.Queue()
 
     logging.basicConfig(filename=RUN_LOG, level=logging.INFO,
                         format='%(asctime)s %(message)s')
     logging.info("RECIPE LINKS PICKLE FILE: %s" % RECIPE_LINKS_PICKLE_FILE)
 
+    # Download the recipes if the pickle file doesn't exist. If the pickle file
+    # does exist, just load it up and continue from there.
     if not os.path.isfile(RECIPE_LINKS_PICKLE_FILE):
         a = get_recipe_links()
         with open(RECIPE_LINKS_PICKLE_FILE, 'w') as pickle_file:
