@@ -19,7 +19,7 @@ def get_recipe_links():
     This function spiders allrecipes.com list of recipes. Only 20 recipes are
     displayed per page. The spider runs through all pages to extract links to
     every recipe. A Queue of links is created and returned. This function has
-    been updated to multithread the request of pages of recipes.
+    been updated to multi-thread the request of pages of recipes.
     Returns:
         a Queue of all the recipe links as BeautifulSoup objects
     Raises:
@@ -62,8 +62,8 @@ def get_recipe_links():
                         links_queue.put(recipe_url)
                 except KeyError:
                     # logging.exception(
-                    #    "%s on page %s does not have an 'id' tag" %
-                    #    (link['href'], page))
+                    # "%s on page %s does not have an 'id' tag" %
+                    # (link['href'], page))
                     pass
                 except AttributeError:
                     # logging.exception("Attribute Error: %s" % link)
@@ -88,6 +88,7 @@ def get_recipe_links():
         logging.info("get_recipe_links(): Starting thread %d" % i)
         thread.start()
     for i in range(numthreads):
+        # noinspection PyUnboundLocalVariable
         thread.join()
         logging.info("get_recipe_links(): Thread %d has joined" % i)
     logging.info("get_recipe_links(): All threads have joined")
@@ -105,7 +106,7 @@ def download_recipes(recipe_links):
     disk for later analysis. For the time being, I will single thread it so as
     not to irritate allrecipes.com with 2000 requests/second.
     This function can realize a significant performance increase by
-    multithreading both the queries and the writes to disk
+    multi-threading both the queries and the writes to disk
     Parameters:
         recipe_links: a queue of recipes from allrecipes.com
     Returns:
@@ -136,9 +137,11 @@ def download_recipes(recipe_links):
                     time.sleep(2)
                     try:
                         recipe = BeautifulSoup(urllib2.urlopen(recipe_url))
-                        logging.info("Downloading recipe: %s" % recipe_file_name)
+                        logging.info(
+                            "Downloading recipe: %s" % recipe_file_name)
                         with open(recipe_file_name, 'w') as recipe_file:
-                            recipe_file.write(recipe.prettify('utf-8', 'ignore'))
+                            recipe_file.write(
+                                recipe.prettify('utf-8', 'ignore'))
                     except BadStatusLine:
                         logging.error("ERROR: Attempt 2 to download %s "
                                       "failed" % recipe_url)

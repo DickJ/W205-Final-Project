@@ -1,98 +1,105 @@
 __author__ = 'rich'
-
-# Standard Library
-import logging
 import re
-
-# Installed libraries
 from mrjob.job import MRJob
+#from nltk.corpus import stopwords
 
-# TODO This would be much better if it were alphabetized
-# TODO There has to be a better way to implement this
-thesaurus = {
-    "barbeque sauce": "barbecue sauce",
-    "salt and black pepper": "salt and pepper",
-    "salt and black pepper to taste": "salt and pepper",
-    "salt and freshly ground black pepper": "salt and pepper",
-    "salt and freshly ground black pepper to taste": "salt and pepper",
-    "salt and ground black pepper to taste": "salt and pepper",
-    "salt and pepper to taste": "salt and pepper",
-    "salt to taste": "salt",
-    "freshly ground black pepper": "black pepper",
-    "freshly ground pepper to taste": "black pepper",
-    "boneless, skinless chicken breast halves": "chicken breast",
-    "skinless, boneless chicken breast halves": "chicken breast",
-    "skinless, boneless chicken breast halves - cubed": "chicken breast",
-    "skinless, boneless chicken breast halves - cut into 1 inch cubes": "chicken breast",
-    "skinless, boneless chicken breast halves - cut into 1 inch strips": "chicken breast",
-    "skinless, boneless chicken breast halves - cut into bite-size pieces": "chicken breast",
-    "skinless, boneless chicken breast halves - cut into thin strips": "chicken breast",
-    "skinless, boneless chicken breast halves, cut into 1-inch cubes": "chicken breast",
-    "skinless, boneless chicken breast halves, sliced": "chicken breast",
-    "chopped, unsalted dry-roasted peanuts": "dry roasted peanuts",
-    "warm water (110 degrees f)": "water",
-    "warm water (110 degrees f/45 degrees c)": "water",
-    "broken pieces vermicelli pasta": "vermicelli"
-}
+class Job(MRJob):
 
-
-class IngredientJob(MRJob):
-    def __init__(self, args=None):
+    @classmethod
+    def process_text(cls, line):
         """
+        This function makes all pre-processing modifications to line
 
-        :param args:
-        :return:
+        Currently, the only modifications being made are to strip leading and
+        trailing whitespace as well as make the line lowercase. If, later,
+        we decide to make more in-depth modifications, they can be created in
+        this function
+
+        :param line: a line of text as a str
+        :return: a cleaned line of text
         """
-        self.previous_line = "None yet"
-        super(IngredientJob, self).__init__(args)
-
-    @staticmethod
-    def process_text(line):
-        """
-
-        :param line:
-        :return:
-        """
-        # NOTE \u00ae is TM symbol
-
         line = line.strip().lower()
-        line = line.split(",")[0]  # remove adj: ex. "tomatoes, chopped"
-        line = line.split(" - ")[0]  # remove adj: ex. "avocado - peeled"
-        if line in thesaurus.keys():  # ex. "salt" vs. "salt to taste"
-            line = thesaurus[line]
-        line = re.sub('^((fresh(ly)?)|(finely)) ((grated )|(ground ))?', '',
-                      line)
-        line = re.sub('^(diced )|(chopped )|(minced )', '',
-                      line)  # remove preparation techniques
-        line = re.sub(' to taste$', '', line)
-        line = re.sub('(cooked)|(uncooked)', '', line)  # remove cooked status
-
-        # TODO is everything that ends in 's' a plural ingredient?
-        if re.search('(s$)', line):
-            logging.info(line)
-
-        line = line.strip()  # Clean up in case my regex missed a space
+        # I'm not using string.punctuation because I don't necessarily want to
+        # remove hyphens (-)
+        line = re.sub(r'[!"#$%&\'()*+,./:;<=>?@[\\\]^_`{|}~]', '', line)
         return line
+
+    def mapper_init(self):
+        """
+        Set class variables that will be useful to our mapper:
+            filename: the path and filename to the current recipe file
+            previous_line: The line previously parsed. We need this because the
+              ingredient name is in the line after the tag
+        """
+
+        #self.filename = os.environ["map_input_file"]  # Not currently used
+        self.previous_line = "None yet"
+        # Determining if an item is in a list is O(n) while determining if an
+        #  item is in a set is O(1)
+        #self.stopwords = set(stopwords.words('english'))
+        # I changed it to this so we do not have to bootstrap nltk.corpus when
+        #  we run on EMR
+        self.stopwords_list = ['i', 'me', 'my', 'myself', 'we', 'our',
+                          'ours',  'ourselves', 'yo', 'your', 'yours',
+                          'yourself', 'yourselves', 'he', 'him', 'his',
+                          'himself', 'she', 'her', 'hers', 'herself',
+                          'it', 'its', 'itself', 'they', 'them', 'their',
+                          'theirs', 'themselves', 'what', 'which', 'who',
+                          'whom', 'this', 'that', 'these', 'those', 'am',
+                          'is', 'are', 'was', 'were', 'be', 'been',
+                          'being', 'have', 'has', 'had', 'having', 'do',
+                          'does', 'did', 'doing', 'a', 'an', 'the',
+                          'and', 'but', 'if', 'or', 'because', 'as',
+                          'until', 'while', 'of', 'at', 'by', 'for',
+                          'with', 'about', 'against', 'between', 'into',
+                          'through', 'during', 'before', 'after', 'above',
+                          'below', 'to', 'from', 'up', 'down', 'in',
+                          'out', 'on', 'off', 'over', 'under', 'again',
+                          'further', 'then', 'once', 'here', 'there',
+                          'when', 'where', 'why', 'how', 'all', 'any',
+                          'both', 'each', 'few', 'more', 'most', 'other',
+                          'some', 'such', 'no', 'nor', 'not', 'only',
+                          'own', 'same', 'so', 'than', 'too', 'very',
+                          's', 't', 'can', 'will', 'just', 'don',
+                          'should', 'now']
+        self.stopwords = set(self.stopwords_list) # For O(1) searching
+
 
     def mapper(self, _, line):
         """
+        Takes a line from an html file and yields ingredient words from it
 
-        :param _:
-        :param line:
-        :return:
+        Given a line of input from an html file, we check to see if it
+        contains the identifier that it is an ingredient. Due to the
+        formatting of our html files from allrecipes.com, the ingredient name
+        is actually found on the following line. Therefore, we save the
+        current line so that it can be referenced in the next pass of the
+        function to determine if we are on an ingredient line.
+
+        :param line: a line of text from the html file as a str
+        :yield: a tuple containing each word in the ingredient as well as a
+            counter for each word. The counter is not currently being used,
+            but is left in for future development. e.g. "chicken breast" would
+            yield "chicken" and "breast"
         """
+
+        # TODO is there a better way to get the tag?
         if re.search(r'span class="ingredient-name" id="lblIngName"',
                      self.previous_line):
             self.previous_line = line
             line = self.process_text(line)
-            if re.search("salt and pepper", line):
-                yield "salt", 1
-                yield "pepper", 1
-            else:
-                yield line, 1
+            line_list = set(line.split())
+            for word in line_list:
+                if word not in self.stopwords:
+                    yield (word, 1)
         else:
             self.previous_line = line
-        yield '', 0
+
+        yield ('', 0)
+        '''
+        words = line.split()
+        for word in words:
+            yield (word, 1)'''
 
     def combiner(self, word, counts):
         yield (word, sum(counts))
@@ -102,6 +109,5 @@ class IngredientJob(MRJob):
 
 
 if __name__ == '__main__':
-    # usage: python extract_ingredients_allrecipes.py <source dir>
-    #        --no-output --outputdir <output dir>
-    IngredientJob.run()
+    Job.run()
+    # python test_try.py -r emr s3://rich-johnson-artest/ --conf-path mrjob.conf --no-output --output-dir s3://rich-johnson-w205-finalproject/out/
