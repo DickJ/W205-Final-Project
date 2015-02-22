@@ -5,11 +5,10 @@ from scrape.extract_ingredients_allrecipes import thesaurus
 import re
 import os
 import glob
-import pandas as pd
-import numpy as np
+
 """
 Extract ingredients from html files (html files from Rich's Google Drive)
-Clean up ingredients (using Rich's code)
+Clean up ingredients (using Richard's txt file)
 Create inverted index: {ingredients : [html1, html2,...]} using a naive method
 
 Notes:
@@ -18,8 +17,16 @@ Notes:
       step3 (aggregate count by term and doc#) is ignored
     2. html_name should be the actual site address in the final product
     3. restricted to allrecipe.com html format
-    4. multi-keyword search not yet supported (next step)
 """
+# all_ingredients: file -> {all ingredients scraped}
+def all_ingredients(igd_fl):
+    all_igd = {}
+    with open(igd_fl) as f:
+        igds = f.read().split()
+        for igd in igds:
+            all_igd[igd] = 1
+    return all_igd
+
 # get_ingredients takes in one html and returns the ingredients from the site
 def get_ingredients(html):
     soup = BeautifulSoup(''.join(html))
@@ -31,49 +38,54 @@ def get_ingredients(html):
 # normalize ingredients
 def norm_ingredient(ingredient):
     line = ingredient.strip().lower()
-    line = line.split(",")[0]  # remove adj: ex. "tomatoes, chopped"
-    line = line.split(" - ")[0]  # remove adj: ex. "avocado - peeled"
-    if line in thesaurus.keys():  # ex. "salt" vs. "salt to taste"
-        line = thesaurus[line]
-    line = re.sub('^((fresh(ly)?)|(finely)) ((grated )|(ground ))?', '',
-                    line)
-    line = re.sub('^(diced )|(chopped )|(minced )', '',
-                    line)  # remove preparation techniques
-    line = re.sub(' to taste$', '', line)
-    line = re.sub('(cooked)|(uncooked)', '', line)  # remove cooked status
+    line = re.sub(r'[!"#$%&\'()*+,./:;<=>?@[\\\]^_`{|}~]', '', line)
     return line
 
-# creates a mapping from ingredients to html filename
-def ingredient_to_file(ingredients, fname):
-    return {ingredient:fname for ingredient in ingredients}
-
-# ingredient count
-def igd_count(igd_sr):
-    return igd_sr.groupby(by=igd_sr.index).count()
-
-
+# create_index directory of html files -> {ingredient: set(html_files)}
+def create_index(path):
+    # loop through directory for all .html files
+    ind = {}
+    for filename in os.listdir(path):
+        if glob.fnmatch.fnmatch(filename,'*.html'):
+            f = open(path+filename, 'r')
+            html = f.readlines()
+            ingredients = get_ingredients(''.join(html))  
+            for ingredient in ingredients:
+                # tokenize ingredients
+                tokens = ingredient.split(' ')
+                for token in tokens:
+                    clean_igd = norm_ingredient(token)
+                    all_igds = all_ingredients('index/full-ingred-word-list.txt')
+                    if clean_igd in all_igds:
+                        if clean_igd not in ind:
+                            ind[clean_igd] = set([filename])
+                        else:
+                            ind[clean_igd] |= set([filename])
+    return ind    
 
 # read files from recipe folder
-path = './recipe/'
-s = pd.Series()
-for filename in os.listdir(path):
-    if glob.fnmatch.fnmatch(filename,'*.html'):
-        f = open(filename, 'r')
-        html = f.readlines()
-        ingredients = get_ingredients(''.join(html))
-        clean_ingredients = []
-        for ingredient in ingredients:
-            clean_ingredients.append(norm_ingredient(ingredient))
-        ingredient_file_mapping = ingredient_to_file(clean_ingredients, filename)
-        s = s.append(pd.Series(ingredient_file_mapping))
+if __name__ == '__main__':
+    path = './recipe/'
+    create_index(path)
 
-# step 2: sort by ingredients
-sorted_map = s.sort_index()
+################################################################
+""" 
+the following are just for analytical purpose
+for instance, figure out the highest frequency of ingredients
+which can help us do the page ranking, adding stop words etc.
+"""
+#s = pd.Series(inv_ind)
+
+## create a data frame of with ingredient being index
+## two columns: links and count
+#s['count'] = s.links.map(lambda x: len(x))
+#s.sort(['count'], ascending = False, inplace = True)
+
+## step 2: sort by ingredients
+# sorted_map = s.sort_index()
 
 # step 4: create frequency count (#doc associated = freq by assumption in notes)
-count = igd_count(sorted_map)
+# count = igd_count(sorted_map)
 
 # step 5: create ingredient mapping ({ingredient: [html1, html2,...]})
-inv_ind = {}
-for igd in count.index:
-    inv_ind[igd] = np.array(sorted_map[igd])
+    
