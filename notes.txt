@@ -1,0 +1,1 @@
+Goal: build an inverted index to perform queries

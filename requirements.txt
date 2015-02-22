@@ -1,0 +1,3 @@
+boto
+bs4
+mrjob
