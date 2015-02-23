@@ -60,8 +60,8 @@ def create_index(path):
                         if clean_igd not in ind:
                             ind[clean_igd] = set([filename])
                         else:
-                            ind[clean_igd] |= set([filename])
-    return ind    
+                            ind[clean_igd].add(filename)
+    return ind
 
 # read files from recipe folder
 if __name__ == '__main__':
