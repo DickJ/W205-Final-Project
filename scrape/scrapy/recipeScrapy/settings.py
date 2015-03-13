@@ -8,10 +8,11 @@
 #     http://doc.scrapy.org/en/latest/topics/settings.html
 #
 
-BOT_NAME = 'findDomains'
+BOT_NAME = 'recipeScrapy'
 
-SPIDER_MODULES = ['findDomains.spiders']
-NEWSPIDER_MODULE = 'findDomains.spiders'
-
+SPIDER_MODULES = ['recipeScrapy.spiders']
+NEWSPIDER_MODULE = 'recipeScrapy.spiders'
+ROBOTSTXT_OBEY = True
+DOMAIN_DEPTHS = {'bettycrocker.com' : 7}
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'findDomains (+http://www.yourdomain.com)'
