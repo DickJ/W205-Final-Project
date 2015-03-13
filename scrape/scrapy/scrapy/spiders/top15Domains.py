@@ -5,7 +5,7 @@ __author__ = 'Rich Johnson'
 from scrapy.spider import Spider
 from scrapy.selector import HtmlXPathSelector
 
-from findDomains.items import findDomainsItem
+from ..items import findDomainsItem
 
 class MySpider(Spider):
     name = 'finddomains'

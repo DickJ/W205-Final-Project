@@ -12,3 +12,6 @@ import scrapy
 class findDomainsItem(scrapy.Item):
     domain_name = scrapy.Field()
     link = scrapy.Field()
+
+class recipeItem(scrapy.Item):
+    url = scrapy.Field()
