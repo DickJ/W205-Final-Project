@@ -1,38 +1,80 @@
 import urllib2
 from HTMLParser import HTMLParser
 import lxml
+import re
+from nltk.corpus import stopwords
+from nltk.stem.lancaster import LancasterStemmer
+import json
+from httplib import BadStatusLine
+
 
 def extract_html(url):
-    response = urllib2.urlopen(url)
+    try:
+        response = urllib2.urlopen(url)
+    except BadStatusLine:
+        return ''
     html = response.read()
     response.close()
     return html
 
-def extract_text(html):
-    return lxml.html.fromstring(html).text_content()
+def extract_title(url):
+    t = lxml.html.parse(url)
+    return t.find(".//title").text.strip()    
 
-def extract_ingredients(html):
-    texts = extract_text(html)
-    ingred = []
-    for line in texts.split('\n'):
-        for word in line.split():
-            if word in ing_dic:
-                ingred.append(word)
-    return ' '.join(ingred)
-               
+def extract_contents(url,html):
+    # remove javascript code
+    js = r"(?is)<script[^>]*>(.*?)</script>"
+    br = r"<br */? *>[ \r\n]*<br */? *>"
+    href = r"(?is)<a href[^>]*>(.*?)</a>"
+    style = r"(?is)<style[^>]*>(.*?)</style>"
+    #li = r"(?is)<li[^>]*>(.*?)</li>"
+    ws = r"[\s\n\r\t]+"
+    tag = r"<[^>]*?>"
+    title = extract_title(url)
+    text = re.sub(js,' ',html) # remove javascript code
+    text = re.sub(href, ' ',text) # remove urls
+    text = re.sub(style,' ',text) # remove style tags
+    text = re.sub(br,' ',text) # remove br tags
+    #text = re.sub(li,' ',text) # remove li tags
+    text = re.sub(tag,' ',text) # remove all tags
+    text = re.sub(ws, ' ',text) # remove white space
+    return (title,text)               
+
+def clean_contents(texts):
+    sws = stopwords.words('english')
+    words_pattern = r"[a-zA-Z][a-zA-Z]*"
+    words = re.findall(words_pattern, texts)
+    #st = LancasterStemmer()
+    words = [word for word in words if not word in sws and word in ing_dic]
+    return ' '.join(words)
+    
+def clean_title(title):
+    title_c = title.lower()
+    title_c = re.sub(r'.com', '',title_c)
+    return title_c
+
 ing_dic = {}
 with open('full-ingred-word-list.txt') as f:
     lines = f.read()
     for ing in lines.split('\r'):
         ing_dic[ing] = 1
 
-#url = "http://www.food.com/recipe/crock-pot-chicken-with-black-beans-cream-cheese-89204"
-#url = "http://allrecipes.com/Recipe/Brown-Sugar-Meatloaf/Detail.aspx?evt19=1&referringHubId=1"
-#url = "http://www.yummly.com/recipe/Marinated-Eggplant-627903?columns=5&position=17%2F35"
-#url = "http://www.chow.com/recipes/31280-orecchiette-spicy-sausage-brown-butter-sage"
-#url = "http://www.simplyrecipes.com/recipes/celery_root_fennel_soup/"
-#url = "http://www.bettycrocker.com/recipes/impossibly-easy-mini-chicken-pot-pies/9a1006cf-5b40-4c87-acd8-9c3436210129"
-url = "http://www.kraftrecipes.com/recipes/tater-topped-casserole-111257.aspx"
 
-html = extract_html(url)
-extract_ingredients(html)
+    
+if __name__ == "__main__":
+    f = open('sample_recipes.txt')
+    docid = 0
+    
+    for line in f.readlines():
+        url = line.strip()        
+        path = 'data/'
+        html = extract_html(url)
+        if html != '':
+            title, texts = extract_contents(url, html)
+            title_c = clean_title(title)
+            contents = clean_contents(texts)
+            doc = {'doc_id':docid,'url':url,'title':title_c,'contents':contents}
+            f=open('data/{}.dat'.format(docid),'w')
+            f.write(json.dumps(doc))
+            f.close()
+            docid += 1
