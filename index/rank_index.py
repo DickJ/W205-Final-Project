@@ -51,13 +51,18 @@ if __name__ == '__main__':
             #print "The IDF is: " + str(idf)
             tf_idf = tf * idf
             print "The TF-IDF is: " + str(tf_idf)
+            del posting[1:4]
             posting.append(tf_idf)
             #print posting
 
         # Save postings list with appended rank
 
-        #print post_list
+        print post_list
         outline = post_term + '\t' + str(post_list)
+
+        # TODO: Note - by having one output (for all MR posting lists), we can effectively query
+        # TODO:     only one file. Alternatively, we can partition in alphabetical order to
+        # TODO:     be able to more quickly query terms.
         with open("rankedout/part-00000", 'a') as outfile:
             outfile.write(outline + '\n')
         #print
