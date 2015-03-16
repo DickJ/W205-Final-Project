@@ -1,22 +1,31 @@
 __author__ = 'Rich Johnson'
 
-from scrapy.spider import Spider
-from scrapy.selector import HtmlXPathSelector
-
+from scrapy.contrib.spiders import CrawlSpider, Rule
+from scrapy.contrib.linkextractors import LinkExtractor
 from ..items import recipeItem
 
-class MySpider(Spider):
+class FoodSpider(CrawlSpider):
     name = 'food'
-    start_urls = [""]
+    allowed_domains = ['food.com']
+    start_urls = []
+    for i in range(5): # 50376
+        start_urls.append("http://www.food.com/recipe?pn="+str(i))
 
-    def parse(self, response):
-        hxs = HtmlXPathSelector(response)
-        domains = hxs.select('XPATH CODE')
+    rules = (
+        Rule(LinkExtractor(allow=".*/recipe/.+\d+"),
+              callback='parse_item'),
+        #Rule(LinkExtractor(allow=""))
+    )
 
-        items = []
-        for section in domains:
-            item = findDomainsItem()
-            item['url'] = section.select('XPATH CODE').extract()
-            items.append(item)
+    def __init__(self):
+        super(FoodSpider, self).__init__()
+        self.seen_recipes = set()
 
-        return items
+    # JS Is messing up spider ... url to recipe is stored in an array with
+    # key "record_url"
+    def parse_item(self, response):
+        item = recipeItem()
+        item['url'] = response.url
+        if item['url'] not in self.seen_recipes:
+            self.seen_recipes.add(item['url'])
+            return item
