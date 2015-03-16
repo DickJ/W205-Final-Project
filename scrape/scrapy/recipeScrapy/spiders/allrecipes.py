@@ -3,16 +3,16 @@ __author__ = 'Rich Johnson'
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
 from ..items import recipeItem
+import re
 
 class KraftRecipesSpider(CrawlSpider):
-    name = 'kraftrecipes'
-    allowed_domains = ['kraftrecipes.com']
-    start_urls = ["http://www.kraftrecipes.com/recipes/main.aspx"]
+    name = 'allrecipes'
+    allowed_domains = ['allrecipes.com']
+    start_urls = ["http://allrecipes.com/recipes"]
     rules = (
-        Rule(LinkExtractor(allow=".*/recipes/.*-\d+\.aspx"),
+        Rule(LinkExtractor(allow=".*/Recipe/.*/Detail\.aspx.*"),
               callback='parse_item'),
-        Rule(LinkExtractor(deny=[".*/[cC]ontrols/.*", ".*/[cC]ommunity/.*",
-                                 ".*true%26pf.*"]))
+        Rule(LinkExtractor(allow=".*/recipes/main.aspx\?Page=\d+.*"))
     )
 
     def __init__(self):
@@ -22,6 +22,7 @@ class KraftRecipesSpider(CrawlSpider):
     def parse_item(self, response):
         item = recipeItem()
         item['url'] = response.url
+        item['url'] = re.sub("\?.*", "", item['url'])
         if item['url'] not in self.seen_recipes:
             self.seen_recipes.add(item['url'])
             return item
