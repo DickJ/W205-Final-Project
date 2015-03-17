@@ -1,5 +1,4 @@
 import urllib2
-from HTMLParser import HTMLParser
 import lxml
 import re
 from nltk.corpus import stopwords
@@ -44,8 +43,8 @@ def clean_contents(texts):
     sws = stopwords.words('english')
     words_pattern = r"[a-zA-Z][a-zA-Z]*"
     words = re.findall(words_pattern, texts)
-    #st = LancasterStemmer()
-    words = [word for word in words if not word in sws and word in ing_dic]
+    st = LancasterStemmer()
+    words = [st.stem(word) for word in words if not word in sws and word in ing_dic]
     return ' '.join(words)
     
 def clean_title(title):
