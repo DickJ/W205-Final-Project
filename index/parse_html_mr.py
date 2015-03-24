@@ -2,10 +2,6 @@ import mrjob
 from mrjob.job import MRJob
 from mrjob.step import MRStep
 import urllib2
-<<<<<<< HEAD
-=======
-import lxml
->>>>>>> ca5a6043cba02ca875c11a7fe03e6504d1dc0a64
 import re
 import nltk
 from nltk.stem.porter import PorterStemmer
