@@ -18,3 +18,4 @@ class recipeItem(scrapy.Item):
     title = scrapy.Field()
     recipe_box = scrapy.Field()
     ingred = scrapy.Field()
+    is_indexed = scrapy.Field()
