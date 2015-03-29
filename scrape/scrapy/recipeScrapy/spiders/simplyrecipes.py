@@ -2,16 +2,18 @@ __author__ = 'Rich Johnson'
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
+from scrapy.exceptions import DropItem
 from ..items import recipeItem
+from scrapy import log
 
 class SimplyRecipesSpider(CrawlSpider):
+
     name = 'simplyrecipes'
     allowed_domains = ['simplyrecipes.com']
     start_urls = ["http://www.simplyrecipes.com/index"]
     rules = (
-        Rule(LinkExtractor(allow=".*/recipes/.*",
-                           deny=".*/recipes/ingredient/.*"),
-              callback='parse_item'),
+        Rule(LinkExtractor(allow=".*/recipes/.*", deny=[".*/recipes/.*/.*/"]),
+             callback='parse_item'),
         Rule(LinkExtractor(allow=".*/recipes/ingredient/.*"))
     )
 
@@ -25,3 +27,5 @@ class SimplyRecipesSpider(CrawlSpider):
         if item['url'] not in self.seen_recipes:
             self.seen_recipes.add(item['url'])
             return item
+        else:
+            raise DropItem
