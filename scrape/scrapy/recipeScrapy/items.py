@@ -15,3 +15,6 @@ class findDomainsItem(scrapy.Item):
 
 class recipeItem(scrapy.Item):
     url = scrapy.Field()
+    title = scrapy.Field()
+    recipe_box = scrapy.Field()
+    ingred = scrapy.Field()
