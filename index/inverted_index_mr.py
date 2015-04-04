@@ -34,8 +34,9 @@ def extract_key_ingred(ingredient):
     #print tagged
     key_words = [w for w,tag in tagged if tag != 'LS' and tag != 'CD']
     np = [w for w,tag in tagged if tag == 'NN'] # noun phrase
+    np = ' '.join(np)
     if len(np) > 0 and np not in key_words:
-        key_words.append(' '.join(np))
+        key_words.append(np)
     return key_words
     
 class Indexing(MRJob):
@@ -68,8 +69,8 @@ class Indexing(MRJob):
 
     def reducer(self, term, postings):
         p = []
-        for posting in postings:
-            p.append(posting)
+        for post in postings:
+            p.append(post)
         yield term, p
     
     #def steps(self):
