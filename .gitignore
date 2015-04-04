@@ -1,3 +1,7 @@
-
+recipe/
 .*
 !/.gitignore
+*.pyc
+index/data/
+index/out/
+scrape/data/
