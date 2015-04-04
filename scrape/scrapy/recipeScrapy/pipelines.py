@@ -49,6 +49,7 @@ class ExtractIngredientsPipeline(object):
             results = [m.groupdict() for m in r.finditer(page)]
             if results:
                 return cls._process_results(results)
+        return None
 
 
     @classmethod
@@ -70,19 +71,30 @@ class ExtractIngredientsPipeline(object):
             results = [m.groupdict() for m in r.finditer(page)]
             if results:
                 return cls._process_results(results)
+        return None
 
 
     @classmethod
     def _span_tag_parser(cls, page):
-        '''
-        self.heur.append(re.compile(
-            '<li><span .*itemprop="ingredients?".*>(?P<ingred>[\s\S]*?)</span></li>'),
-            flags=re.IGNORECASE)
-        self.heur.append(re.compile(
-            '<span class="ingredient">(?P<ingred>[\s\S]*?)</span>'),
-            flags=re.IGNORECASE)
-        '''
-        pass
+        results = []
+
+        h = [
+            re.compile(
+                '<span .*itemprop="ingredients?".*>',
+                flags=re.IGNORECASE),
+            re.compile(
+                '<span .*class="ingredients?".*>',
+                flags=re.IGNORECASE)]
+
+        for r in h:
+            if r.search(page):
+                spans = BeautifulSoup(page).find_all('span')
+                for span in spans:
+                    if r.match(str(span)):
+                        results.append({'ingred' : span})
+                return cls._process_results(results)
+
+        return None
 
 
     @classmethod
@@ -95,9 +107,10 @@ class ExtractIngredientsPipeline(object):
         ing = []
         for i in r:
             tmp = i['ingred']
-            tmp = re.sub(r'<[^>]+>', '', tmp)  # Remove HTML tags
+            tmp = re.sub(r'<[^>]+>', '', str(tmp))  # Remove HTML tags
             tmp = re.sub('[\n\r]', '', tmp)  # Remove excessive newlines
             tmp = re.sub('\s{2,}', ' ', tmp)  # Remove excessive whitespace
+            tmp = re.sub(u'\xc2\xa0', ' ', tmp) # Get rid of no-break spaces
             ing.append(tmp)
         return tuple(ing)
 
@@ -112,9 +125,9 @@ class ExtractIngredientsPipeline(object):
         soup = BeautifulSoup(page)
         item['title'] = soup.title.string
         for h in self.heur:
-            results = [m.groupdict() for m in h.finditer(page)]
+            results = h(page)
             if results:
-                item['ingred'] = self._process_results(results)
+                item['ingred'] = results
                 return item
         raise scrapy.exceptions.DropItem(
             "Unable to find ingredients in %s for spider %s" %
@@ -181,4 +194,13 @@ def ExtractIngredientsPipeline_test():
 if __name__ == '__main__':
     # MongoWriterPipeline_test()
     # ExtractIngredientsPipeline_test()
+
+    # Test <span itemprop="ingredients"> tag extraction
+    import items
+    item1 = items.recipeItem()
+    item1['url'] = 'http://www.kraftrecipes.com/recipes/creamy-citrus-chive-asparagus-114730.aspx'
+    extract = ExtractIngredientsPipeline()
+    item = extract.process_item(item1, None)
+    print item['ingred']
+
     print "Tests complete."

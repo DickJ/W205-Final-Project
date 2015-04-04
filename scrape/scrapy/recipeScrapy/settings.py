@@ -21,7 +21,7 @@ MONGODB_PORT = 53370
 MONGODB_USER = 'recipe'
 MONGODB_PW = 'recipe'
 MONGODB_DB = 'recipemaker'
-MONGODB_COLLECTION = 'recipURLs'
+MONGODB_COLLECTION = 'recipeURLs'
 
 ITEM_PIPELINES = {'recipeScrapy.pipelines.ExtractIngredientsPipeline': 300,
                   'recipeScrapy.pipelines.MongoWriterPipeline': 400}
