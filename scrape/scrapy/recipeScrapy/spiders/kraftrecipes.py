@@ -7,13 +7,12 @@ from ..items import recipeItem
 class KraftRecipesSpider(CrawlSpider):
     name = 'kraftrecipes'
     allowed_domains = ['kraftrecipes.com']
-    start_urls = ["http://www.kraftrecipes.com/recipes/main.aspx"]
+    start_urls = ["http://www.kraftrecipes.com/recipes/search/SearchResults.aspx?searchtext=1&u2=1&start=1&photo=y&"]
     rules = (
         Rule(LinkExtractor(allow=".*/recipes/.*-\d+\.aspx"),
               callback='parse_item'),
-        Rule(LinkExtractor(deny=[".*/[cC]ontrols/.*", ".*/[cC]ommunity/.*",
-                                 ".*true%26pf.*"]))
-    )
+        Rule(LinkExtractor(
+            allow='.*kraftrecipes\.com/recipes/search/SearchResults\.aspx\?searchtext=1.*')))
 
     def __init__(self):
         super(KraftRecipesSpider, self).__init__()
