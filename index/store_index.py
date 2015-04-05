@@ -21,7 +21,8 @@ for k in keys:
         for line in f.strip().split('\n'):
             ingred, val = line.split('\t')
             ingred = ast.literal_eval(ingred)
-            ps = ast.literal_eval(val)[0]
-            posts = [{'url':p[0], 'title':p[1]} for p in ps]
-            data = {'ingredient':ingred, 'postinglist': posts}
-            recipe_index.insert(data)
+            psts = ast.literal_eval(val)
+            for ps in psts:
+                posts = [{'url':p[0], 'title':p[1]} for p in ps]
+                data = {'ingredient':ingred, 'postinglist': posts}
+                recipe_index.insert(data)
