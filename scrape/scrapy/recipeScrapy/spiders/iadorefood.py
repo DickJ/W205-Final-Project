@@ -8,7 +8,7 @@ import re
 class IAdoreFoodSpider(CrawlSpider):
     name = 'iadorefood'
     allowed_domains = ['iadorefood.com']
-    start_urls = ["http://iadorefood.com/recipes/"]
+    start_urls = ["http://www.iadorefood.com/recipes/"]
     rules = (
         Rule(LinkExtractor(allow=".*iadorefood.com/recipes/.*"),
               callback='parse_item'),

@@ -43,7 +43,7 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _div_tag_parser(cls, page):
         h = [re.compile(
-            '<div .*itemprop="ingredients?".*>(?P<ingred>[\s\S]*?)</div>',
+            '<div .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</div>',
             flags=re.IGNORECASE)]
         for r in h:
             results = [m.groupdict() for m in r.finditer(page)]
@@ -55,16 +55,16 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _li_tag_parser(cls, page):
         h = [re.compile(
-                '<li .*class="ingredients?".*>(?P<ingred>[\s\S]*?)</li>',
+                '<li .*class=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<li .*itemprop="ingredients?".*>(?P<ingred>[\s\S]*?)</li>',
+                '<li .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<li .*id="liIngredients?".*>(?P<ingred>[\s\S]*?)</li>',
+                '<li .*id=["\']liIngredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<dl .*itemprop="ingredients?".*>(?P<ingred>[\s\S]*?)</dl>',
+                '<dl .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</dl>',
                 flags=re.IGNORECASE)]
 
         for r in h:
@@ -80,10 +80,10 @@ class ExtractIngredientsPipeline(object):
 
         h = [
             re.compile(
-                '<span .*itemprop="ingredients?".*>',
+                '<span .*itemprop=["\']ingredients?["\'].*>',
                 flags=re.IGNORECASE),
             re.compile(
-                '<span .*class="ingredients?".*>',
+                '<span .*class=["\']ingredients?["\'].*>',
                 flags=re.IGNORECASE)]
 
         for r in h:
@@ -117,7 +117,7 @@ class ExtractIngredientsPipeline(object):
     def process_item(self, item, spider):
         try:
             page = urllib2.urlopen(item['url']).read()
-        except urllib2.URLError:
+        except:
             log.msg("Couldn't open %s. Will retry in 10s." % (item['url'],),
                     level=log.ERROR)
             sleep(10)
