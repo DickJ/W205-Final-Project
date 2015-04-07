@@ -5,7 +5,7 @@ from scrapy.contrib.linkextractors import LinkExtractor
 from ..items import recipeItem
 import re
 
-class KraftRecipesSpider(CrawlSpider):
+class AllrecipesSpider(CrawlSpider):
     name = 'allrecipes'
     allowed_domains = ['allrecipes.com']
     start_urls = ["http://allrecipes.com/recipes"]
@@ -16,7 +16,7 @@ class KraftRecipesSpider(CrawlSpider):
     )
 
     def __init__(self):
-        super(KraftRecipesSpider, self).__init__()
+        super(AllrecipesSpider, self).__init__()
         self.seen_recipes = set()
 
     def parse_item(self, response):
