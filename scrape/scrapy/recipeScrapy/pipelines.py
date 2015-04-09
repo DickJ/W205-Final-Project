@@ -43,7 +43,7 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _div_tag_parser(cls, page):
         h = [re.compile(
-            '<div .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</div>',
+            '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
             flags=re.IGNORECASE)]
         for r in h:
             results = [m.groupdict() for m in r.finditer(page)]
@@ -55,16 +55,16 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _li_tag_parser(cls, page):
         h = [re.compile(
-                '<li .*class=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
+                '<li [^>]*class=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<li .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
+                '<li [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<li .*id=["\']liIngredients?["\'].*>(?P<ingred>[\s\S]*?)</li>',
+                '<li [^>]*id=["\']liIngredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
              re.compile(
-                '<dl .*itemprop=["\']ingredients?["\'].*>(?P<ingred>[\s\S]*?)</dl>',
+                '<dl [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</dl>',
                 flags=re.IGNORECASE)]
 
         for r in h:
@@ -80,10 +80,10 @@ class ExtractIngredientsPipeline(object):
 
         h = [
             re.compile(
-                '<span .*itemprop=["\']ingredients?["\'].*>',
+                '<span [^>]*itemprop=["\']ingredients?["\'][^>]*>',
                 flags=re.IGNORECASE),
             re.compile(
-                '<span .*class=["\']ingredients?["\'].*>',
+                '<span [^>]*class=["\']ingredients?["\'][^>]*>',
                 flags=re.IGNORECASE)]
 
         for r in h:
@@ -191,10 +191,16 @@ def ExtractIngredientsPipeline_test():
     extract._process_results(res[1])
     extract._process_results(res[2])
 
-if __name__ == '__main__':
-    # MongoWriterPipeline_test()
-    # ExtractIngredientsPipeline_test()
 
+def ExtractFromli_test():
+    from items import recipeItem
+    item = recipeItem()
+    k = ExtractIngredientsPipeline()
+    item['url'] = 'http://naturallyella.com/2013/05/08/grilled-asparagus-and-chili-orange-quinoa-spring-rolls/'
+
+    ExtractIngredientsPipeline.process_item(k, item, None)
+
+def ExtractFromSpan_test():
     # Test <span itemprop="ingredients"> tag extraction
     import items
     item1 = items.recipeItem()
@@ -202,5 +208,10 @@ if __name__ == '__main__':
     extract = ExtractIngredientsPipeline()
     item = extract.process_item(item1, None)
     print item['ingred']
+
+if __name__ == '__main__':
+    # MongoWriterPipeline_test()
+    # ExtractIngredientsPipeline_test()
+    ExtractFromli_test()
 
     print "Tests complete."
