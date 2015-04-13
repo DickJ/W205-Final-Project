@@ -5,18 +5,18 @@ from scrapy.contrib.linkextractors import LinkExtractor
 from ..items import recipeItem
 import re
 
-class AllRecipesSpider(CrawlSpider):
-    name = 'allrecipes'
-    allowed_domains = ['allrecipes.com']
-    start_urls = ["http://allrecipes.com/recipes"]
+class Food52Spider(CrawlSpider):
+    name = 'food52'
+    allowed_domains = ['food52.com']
+    start_urls = ["http://food52.com/recipes"]
     rules = (
-        Rule(LinkExtractor(allow=".*/Recipe/.*/Detail\.aspx.*"),
+        Rule(LinkExtractor(allow=".*food52\.com/recipes/\d+-.*"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=".*/recipes/main.aspx\?Page=\d+.*"))
+        Rule(LinkExtractor(allow=".*food52\.com/recipes\?page=\d+"))
     )
 
     def __init__(self):
-        super(AllRecipesSpider, self).__init__()
+        super(Food52Spider, self).__init__()
         self.seen_recipes = set()
 
     def parse_item(self, response):
