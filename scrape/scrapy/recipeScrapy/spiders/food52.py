@@ -10,9 +10,9 @@ class Food52Spider(CrawlSpider):
     allowed_domains = ['food52.com']
     start_urls = ["http://food52.com/recipes"]
     rules = (
-        Rule(LinkExtractor(allow=".*food52\.com/recipes/\d+-.*"),
+        Rule(LinkExtractor(allow=".*/recipes/\d+-.*"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=".*food52\.com/recipes\?page=\d+"))
+        Rule(LinkExtractor(allow=".*/recipes\?.*page=\d+.*"))
     )
 
     def __init__(self):

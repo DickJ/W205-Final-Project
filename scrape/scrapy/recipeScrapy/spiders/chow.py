@@ -9,10 +9,10 @@ class chowSpider(CrawlSpider):
     allowed_domains = ['chow.com']
     start_urls = ["http://www.chow.com/recipes"]
     rules = (
-        Rule(LinkExtractor(allow="chow.com/recipes/\d.*"),
+        Rule(LinkExtractor(allow=".*chow.com/recipes/\d.*"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=["chow.comm/recipes?page=\d+",
-                                  "chow.com/recipes/category/.*"]))
+        Rule(LinkExtractor(allow=[".*chow.com/recipes\?page=\d+",
+                                  ".*chow.com/recipes/category/.*"]))
     )
 
     def __init__(self):

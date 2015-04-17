@@ -43,8 +43,15 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _div_tag_parser(cls, page):
         h = [re.compile(
-            '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
-            flags=re.IGNORECASE)]
+                '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
+                flags=re.IGNORECASE),
+             re.compile(
+                '<div [^>]*class=["\']ingredients? recipe-ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
+                flags=re.IGNORECASE),
+             re.compile(
+                 '<div [^>]*class=["\']fr-ing-text["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
+                 flags=re.IGNORECASE),
+             ]
         for r in h:
             results = [m.groupdict() for m in r.finditer(page)]
             if results:
@@ -111,17 +118,25 @@ class ExtractIngredientsPipeline(object):
             tmp = re.sub('[\n\r]', '', tmp)  # Remove excessive newlines
             tmp = re.sub('\s{2,}', ' ', tmp)  # Remove excessive whitespace
             tmp = re.sub(u'\xc2\xa0', ' ', tmp) # Get rid of no-break spaces
-            ing.append(tmp)
+            tmp = tmp.strip() # removing leading/trailing whitespace, tabs, etc.
+            if tmp is not '':
+                ing.append(tmp)
         return tuple(ing)
 
+    #@classmethod
     def process_item(self, item, spider):
         try:
-            page = urllib2.urlopen(item['url']).read()
+            # Bypass user-agent filtering
+            req = urllib2.Request(item['url'], headers={'User-Agent' : 'Magic Browser'})
+            page = urllib2.urlopen(req).read()
         except:
             log.msg("Couldn't open %s. Will retry in 10s." % (item['url'],),
                     level=log.ERROR)
             sleep(10)
-            page = urllib2.urlopen(item['url']).read()
+            req = urllib2.Request(item['url'], headers={'User-Agent' : 'Magic Browser'})
+            page = urllib2.urlopen(req).read()
+        # TODO: How slow is BeautifulSoup? Re-write this to just regex the title
+        # tag out so that there is no need to use BS4
         soup = BeautifulSoup(page)
         item['title'] = soup.title.string
         for h in self.heur:
@@ -129,9 +144,10 @@ class ExtractIngredientsPipeline(object):
             if results:
                 item['ingred'] = results
                 return item
-        raise scrapy.exceptions.DropItem(
-            "Unable to find ingredients in %s for spider %s" %
-            (item['url'], spider))
+        return item
+        #raise scrapy.exceptions.DropItem(
+        #    "Unable to find ingredients in %s for spider %s" %
+        #    (item['url'], spider))
 
 
 class MongoWriterPipeline(object):
@@ -146,6 +162,7 @@ class MongoWriterPipeline(object):
                 db = conn[settings['MONGODB_DB']]
                 db.authenticate(settings['MONGODB_USER'], settings['MONGODB_PW'])
             self.coll = db[settings['MONGODB_COLLECTION']]
+            self.possibles = db[settings['MONGODB_DROPPED_DB']]
         except pymongo.errors.ConnectionFailure:
             log.msg("Could not connect to mongodb %s:%d"
                     % (s['MONGODB_SERVER'], s['MONGODB_PORT']),
@@ -155,8 +172,14 @@ class MongoWriterPipeline(object):
         item['is_indexed'] = False
         for i in range(5):
             try:
-                self.coll.insert(dict(item))
-                return item
+                if 'ingred' in item.keys():
+                    self.coll.insert(dict(item))
+                    return item
+                else:
+                    self.possibles.insert(dict(item))
+                    raise scrapy.exceptions.DropItem(
+                        "Unable to find ingredients in %s for spider %s" %
+                        (item['url'], spider))
             except pymongo.errors.AutoReconnect:
                 log.msg("Reconnection attempt %d" % (i,), level=log.WARNING) # Change to logging
         raise scrapy.exceptions.DropItem(

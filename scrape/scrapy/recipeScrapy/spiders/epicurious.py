@@ -6,12 +6,13 @@ from ..items import recipeItem
 
 class EpicuriousSpider(CrawlSpider):
     name = 'epicurious'
-    allowed_domains = ['']
-    start_urls = [""]
+    allowed_domains = ['epicurious.com']
+    start_urls = ["http://www.epicurious.com/recipesmenus/browse"]
     rules = (
-        Rule(LinkExtractor(allow=""),
+        Rule(LinkExtractor(allow=".*/recipes/food/views/[\w\d-]+\d+"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=""))
+        Rule(LinkExtractor(allow=[".*\.com/tools/searchresults\?type=simple&att=\d+&search=.*",
+                                  ".*/searchresults\?type=simple&att=\d+&search=[\w\d]+&pageNumber=\d+&pageSize=\d+&resultOffset=\d+"]))
     )
 
     def __init__(self):

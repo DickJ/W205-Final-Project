@@ -9,21 +9,18 @@
 #
 
 BOT_NAME = 'recipeScrapy'
-
-LOG_LEVEL = "INFO"
-SPIDER_MODULES = ['recipeScrapy.spiders']
-NEWSPIDER_MODULE = 'recipeScrapy.spiders'
-ROBOTSTXT_OBEY = True
-DOMAIN_DEPTHS = {'bettycrocker.com' : 7}
-
-MONGODB_SERVER = 'ds053370.mongolab.com'
-MONGODB_PORT = 53370
-MONGODB_USER = 'recipe'
-MONGODB_PW = 'recipe'
-MONGODB_DB = 'recipemaker'
-MONGODB_COLLECTION = 'recipeURLs'
-
 ITEM_PIPELINES = {'recipeScrapy.pipelines.ExtractIngredientsPipeline': 300,
-                  'recipeScrapy.pipelines.MongoWriterPipeline': 400}
-# Crawl responsibly by identifying yourself (and your website) on the user-agent
+                  'recipeScrapy.pipelines.MongoWriterPipeline': 400,
+                  }
+LOG_LEVEL = "INFO"
+MONGODB_SERVER = 'ds059651.mongolab.com'
+MONGODB_PORT = 59651
+MONGODB_USER = 'scraper'
+MONGODB_PW = 'scraper'
+MONGODB_DB = 'scraper'
+MONGODB_DROPPED_DB = 'droppedURLs'
+MONGODB_COLLECTION = 'recipeURLs'
+NEWSPIDER_MODULE = 'recipeScrapy.spiders'
+#ROBOTSTXT_OBEY = True
+SPIDER_MODULES = ['recipeScrapy.spiders']
 USER_AGENT = 'recipeScrapy'

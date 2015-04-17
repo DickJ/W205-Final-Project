@@ -7,12 +7,13 @@ import re
 
 class SteamyKitchenSpider(CrawlSpider):
     name = 'steamykitchen'
+    USER_AGENT = "Mozilla/4.0"
     allowed_domains = ['steamykitchen.com']
     start_urls = ["http://steamykitchen.com/category/recipes"]
     rules = (
-        Rule(LinkExtractor(allow="http://steamykitchen.com/\d+-.*\.html"),
+        Rule(LinkExtractor(allow=".*\.com/\d+-.*\.html"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow="http://steamykitchen\.com/category/recipes/page/\d+"))
+        Rule(LinkExtractor(allow=".*/category/recipes/page/\d+"))
     )
 
     def __init__(self):

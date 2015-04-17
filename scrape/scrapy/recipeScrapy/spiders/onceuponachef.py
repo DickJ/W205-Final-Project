@@ -6,7 +6,7 @@ from ..items import recipeItem
 import re
 
 class OnceUponSpider(CrawlSpider):
-    name = 'onceupon'
+    name = 'onceuponachef'
     allowed_domains = ['onceuponachef.com']
     start_urls = ["http://www.onceuponachef.com/recipes"]
     rules = (

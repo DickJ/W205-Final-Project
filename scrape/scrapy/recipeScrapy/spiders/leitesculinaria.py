@@ -10,9 +10,9 @@ class LeitesCulinariaSpider(CrawlSpider):
     allowed_domains = ['leitesculinaria.com']
     start_urls = ["http://leitesculinaria.com/category/recipes"]
     rules = (
-        Rule(LinkExtractor(allow=".*leitesculinaria\.com/\d+/.*\.html"),
+        Rule(LinkExtractor(allow=".*\.com/\d+/.*\.html"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=".*leitesculinaria\.com/category/recipes/page/\d+"))
+        Rule(LinkExtractor(allow=".*\.com/category/recipes/page/\d+"))
     )
 
     def __init__(self):
