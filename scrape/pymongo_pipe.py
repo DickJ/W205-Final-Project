@@ -1,3 +1,12 @@
+# This code probably should not exist. It should be replaced with a single
+# mongoexport call. i.e.:
+# $ mongoexport --host ds059651.mongolab.com --port 59651 --username scraper
+#   --pasword scraper --db scraper --collection recipeURLs
+#   --query {is_indexed : false} --csv
+#   --fields _id,url,title,ingred,is_indexed --out ./output_location/file.csv
+
+
+
 import pymongo
 
 conn = pymongo.MongoClient('ds053370.mongolab.com', 53370)
