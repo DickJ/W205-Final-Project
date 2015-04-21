@@ -1,7 +1,7 @@
 # This code probably should not exist. It should be replaced with a single
 # mongoexport call. i.e.:
-# $ mongoexport --host ds059651.mongolab.com --port 59651 --username scraper
-#   --pasword scraper --db scraper --collection recipeURLs
+# $ mongoexport --host ds059651.mongolab.com --port 59651 --username fuggedaboutit
+#   --password dontryit --db scraper --collection recipeURLs
 #   --query {is_indexed : false} --csv
 #   --fields _id,url,title,ingred,is_indexed --out ./output_location/file.csv
 
@@ -9,9 +9,9 @@
 
 import pymongo
 
-conn = pymongo.MongoClient('ds053370.mongolab.com', 53370)
-db = conn.recipemaker
-db.authenticate('recipe', 'recipe')
+conn = pymongo.MongoClient('ds029142-a0.mongolab.com', 29142)
+db = conn.scraper
+db.authenticate('scraper', 'scraper')
 c = db.recipeURLs
 
 

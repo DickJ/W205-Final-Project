@@ -2,7 +2,7 @@ __author__ = 'Rich Johnson'
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
-from ..items import recipeItem
+from ..items import RecipeItem
 import re
 
 class OnceUponSpider(CrawlSpider):
@@ -12,8 +12,8 @@ class OnceUponSpider(CrawlSpider):
     rules = (
         Rule(LinkExtractor(allow=".*onceuponachef\.com/\d{4}/\d{2}/.*\.html"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow=[".*onceuponachef\.com/recipes/\w/?",
-                                  ".*onceuponachef\.com/recipes/\w/page/\d+"]))
+        Rule(LinkExtractor(allow=[".*onceuponachef\.com/recipes/[\w+_/]+",
+                                  ".*onceuponachef\.com/recipes/[\w_/]+page/\d+"]))
     )
 
     def __init__(self):
@@ -21,7 +21,7 @@ class OnceUponSpider(CrawlSpider):
         self.seen_recipes = set()
 
     def parse_item(self, response):
-        item = recipeItem()
+        item = RecipeItem()
         item['url'] = response.url
         item['url'] = re.sub("\?.*", "", item['url'])
         if item['url'] not in self.seen_recipes:

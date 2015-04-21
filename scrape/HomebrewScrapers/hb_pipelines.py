@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 from bs4 import BeautifulSoup
 import logging
 import pymongo
@@ -16,20 +12,32 @@ import urllib2
 
 
 class ExtractIngredientsPipeline(object):
+    """
+    ExtractIngredientsPipeline provides the basis for locating and extracting
+    ingredients from a given recipe page.
+    """
+
     def __init__(self):
         """
         Initialize ingredient extraction heuristics
         """
-        # ingredient finding heuristic functions
         self.heur = [self._div_tag_parser, self._li_tag_parser,
                      self._span_tag_parser]
 
-        '''
-
-        '''
-
     @classmethod
     def _div_tag_parser(cls, page):
+        """
+        Runs ingredient checking heuristics that look for <div> tags
+
+        Each page is scanned for ingredients which are put in a list of dicts in
+        the format [{ingred: "Ingred 1"}, ..., {ingred: "Ingred n"}]
+        This list is then passed to _process_results for cleaning and the
+        resulting tuple is returned.
+
+        :param page: a string containing HTML code for a webpage
+        :return: A tuple containing the ingredients extracted from the webpage,
+                 if found. Otherwise, it returns None.
+        """
         h = [re.compile(
                 '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
                 flags=re.IGNORECASE),
@@ -49,6 +57,18 @@ class ExtractIngredientsPipeline(object):
 
     @classmethod
     def _li_tag_parser(cls, page):
+        """
+        Runs ingredient checking heuristics that look for <li> tags
+
+        Each page is scanned for ingredients which are put in a list of dicts in
+        the format [{ingred: "Ingred 1"}, ..., {ingred: "Ingred n"}]
+        This list is then passed to _process_results for cleaning and the
+        resulting tuple is returned.
+
+        :param page: a string containing HTML code for a webpage
+        :return: A tuple containing the ingredients extracted from the webpage,
+                 if found. Otherwise, it returns None.
+        """
         h = [re.compile(
                 '<li [^>]*class=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
                 flags=re.IGNORECASE),
@@ -71,6 +91,23 @@ class ExtractIngredientsPipeline(object):
 
     @classmethod
     def _span_tag_parser(cls, page):
+        """
+        Runs ingredient checking heuristics that look for <span> tags
+
+        Due to the nature of span tags, these are processed in a different
+        manner than <div> and <li> tags. Errors may arise from nested <span>
+        tags, as such, pages are processed in to BeautifulSoup to search for
+        possible ingredients.
+
+        Each page is scanned for ingredients which are put in a list of dicts in
+        the format [{ingred: "Ingred 1"}, ..., {ingred: "Ingred n"}]
+        This list is then passed to _process_results for cleaning and the
+        resulting tuple is returned.
+
+        :param page: a string containing HTML code for a webpage
+        :return: A tuple containing the ingredients extracted from the webpage,
+                 if found. Otherwise, it returns None.
+        """
         results = []
 
         h = [
@@ -95,9 +132,10 @@ class ExtractIngredientsPipeline(object):
     @classmethod
     def _process_results(cls, r):
         """
-        DEPRECATED: re.findall() returns a list
-        :param r: A list of dicts
-        :return: a tuple containing all ingredients found
+        This function takes a list of dicts, cleans it, and returns a clean tuple
+
+        :param r: A list of dictionaries in the format [{ingred: "Ing 1"}, ..., {ingred: "Ing n"}]
+        :return: a tuple containing all ingredients found after they have been cleaned
         """
         ing = []
         for i in r:
@@ -111,8 +149,16 @@ class ExtractIngredientsPipeline(object):
                 ing.append(tmp)
         return tuple(ing)
 
-
     def process_item(self, item, spider):
+        """
+        :param item: a RecipeItem object containing an entry for the 'url' field
+        :param spider: A CrawlSpider object
+        :return: Returns RecipeItem containing the title and ingredients list
+                 for a given recipe
+
+        :raises: scrapy.exceptions.DropItem if the url is unable to be retrieved
+                 or if ingredients are not found in the retrieved page.
+        """
         try:
             # Bypass user-agent filtering
             req = urllib2.Request(item['url'], headers={'User-Agent' : 'Mozilla/5.0'})
@@ -124,11 +170,13 @@ class ExtractIngredientsPipeline(object):
             sleep(10)
             req = urllib2.Request(item['url'], headers={'User-Agent' : 'Magic Browser'})
             page = urllib2.urlopen(req).read()
-        # TODO: How slow is BeautifulSoup? Re-write this to just regex the title
-        # tag out so that there is no need to use BS4
         else:
-            soup = BeautifulSoup(page)
-            item['title'] = soup.title.string
+            title_m = re.search('<title>(?P<title>.*?)</title>', page)
+            try:
+                item['title'] = title_m.group('title')
+            except Exception as e:
+                logging.info("Page %s has no title" % (item['url']))
+
             for h in self.heur:
                 results = h(page)
                 if results:
@@ -146,17 +194,27 @@ class MongoWriterPipeline(object):
             db = conn[s['MONGODB_DB']]
             db.authenticate(s['MONGODB_USER'], s['MONGODB_PW'])
             self.coll = db[s['MONGODB_COLLECTION']]
+            self.possibles = db[s['MONGODB_DROPPED_DB']]
         except pymongo.errors.ConnectionFailure:
             log.msg("Could not connect to mongodb %s:%d"
                     % (s['MONGODB_SERVER'], s['MONGODB_PORT']),
                     level=log.CRITICAL)
 
     def process_item(self, item, spider):
+        """
+        Inserts item into a MongoDB
+        """
         item['is_indexed'] = False
         for i in range(5):
             try:
-                self.coll.insert(dict(item))
-                return item
+                if 'ingred' in item.keys():
+                    self.coll.insert(dict(item))
+                    return item
+                else:
+                    self.possibles.insert(dict(item))
+                    raise scrapy.exceptions.DropItem(
+                        "Unable to find ingredients in %s for spider %s" %
+                        (item['url'], spider))
             except pymongo.errors.AutoReconnect:
                 log.msg("Reconnection attempt %d" % (i,), level=log.WARNING) # Change to logging
         raise scrapy.exceptions.DropItem(

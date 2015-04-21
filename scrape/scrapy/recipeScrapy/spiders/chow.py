@@ -2,7 +2,7 @@ __author__ = 'Rich Johnson'
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
-from ..items import recipeItem
+from ..items import RecipeItem
 
 class chowSpider(CrawlSpider):
     name = 'chow'
@@ -20,7 +20,7 @@ class chowSpider(CrawlSpider):
         self.seen_recipes = set()
 
     def parse_item(self, response):
-        item = recipeItem()
+        item = RecipeItem()
         item['url'] = response.url
         if item['url'] not in self.seen_recipes:
             self.seen_recipes.add(item['url'])
