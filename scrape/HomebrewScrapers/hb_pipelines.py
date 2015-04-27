@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from bs4 import BeautifulSoup
+import logging
 import pymongo
 import pymongo.errors
 import re
-from scrapy import log
-from scrapy.conf import settings
 import scrapy.exceptions
+from scrapy import log
 from time import sleep
 import urllib2
-
-
-class RecipeScrapyPipeline(object):
-    def process_item(self, item, spider):
-        return item
 
 
 class ExtractIngredientsPipeline(object):
@@ -21,6 +16,7 @@ class ExtractIngredientsPipeline(object):
     ExtractIngredientsPipeline provides the basis for locating and extracting
     ingredients from a given recipe page.
     """
+
     def __init__(self):
         """
         Initialize ingredient extraction heuristics
@@ -43,15 +39,15 @@ class ExtractIngredientsPipeline(object):
                  if found. Otherwise, it returns None.
         """
         h = [re.compile(
-                 '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
-                 flags=re.IGNORECASE),
+                '<div [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
+                flags=re.IGNORECASE),
              re.compile(
-                 '<div [^>]*class=["\']ingredients? recipe-ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
-                 flags=re.IGNORECASE),
+                '<div [^>]*class=["\']ingredients? recipe-ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
+                flags=re.IGNORECASE),
              re.compile(
                  '<div [^>]*class=["\']fr-ing-text["\'][^>]*>(?P<ingred>[\s\S]*?)</div>',
                  flags=re.IGNORECASE),
-        ]
+             ]
         for r in h:
             results = [m.groupdict() for m in r.finditer(page)]
             if results:
@@ -74,17 +70,17 @@ class ExtractIngredientsPipeline(object):
                  if found. Otherwise, it returns None.
         """
         h = [re.compile(
-                 '<li [^>]*class=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
-                 flags=re.IGNORECASE),
+                '<li [^>]*class=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
+                flags=re.IGNORECASE),
              re.compile(
-                 '<li [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
-                 flags=re.IGNORECASE),
+                '<li [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
+                flags=re.IGNORECASE),
              re.compile(
-                 '<li [^>]*id=["\']liIngredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
-                 flags=re.IGNORECASE),
+                '<li [^>]*id=["\']liIngredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</li>',
+                flags=re.IGNORECASE),
              re.compile(
-                 '<dl [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</dl>',
-                 flags=re.IGNORECASE)]
+                '<dl [^>]*itemprop=["\']ingredients?["\'][^>]*>(?P<ingred>[\s\S]*?)</dl>',
+                flags=re.IGNORECASE)]
 
         for r in h:
             results = [m.groupdict() for m in r.finditer(page)]
@@ -112,8 +108,8 @@ class ExtractIngredientsPipeline(object):
         :return: A tuple containing the ingredients extracted from the webpage,
                  if found. Otherwise, it returns None.
         """
-
         results = []
+
         h = [
             re.compile(
                 '<span [^>]*itemprop=["\']ingredients?["\'][^>]*>',
@@ -127,10 +123,11 @@ class ExtractIngredientsPipeline(object):
                 spans = BeautifulSoup(page).find_all('span')
                 for span in spans:
                     if r.match(str(span)):
-                        results.append({'ingred': span})
+                        results.append({'ingred' : span})
                 return cls._process_results(results)
 
         return None
+
 
     @classmethod
     def _process_results(cls, r):
@@ -146,8 +143,8 @@ class ExtractIngredientsPipeline(object):
             tmp = re.sub(r'<[^>]+>', '', str(tmp))  # Remove HTML tags
             tmp = re.sub('[\n\r]', '', tmp)  # Remove excessive newlines
             tmp = re.sub('\s{2,}', ' ', tmp)  # Remove excessive whitespace
-            tmp = re.sub(u'\xc2\xa0', ' ', tmp)  # Get rid of non-break spaces
-            tmp = tmp.strip()  # removing leading/trailing whitespace, tabs, etc.
+            tmp = re.sub(u'\xc2\xa0', ' ', tmp) # Get rid of no-break spaces
+            tmp = tmp.strip() # removing leading/trailing whitespace, tabs, etc.
             if tmp is not '':
                 ing.append(tmp)
         return tuple(ing)
@@ -162,26 +159,24 @@ class ExtractIngredientsPipeline(object):
         :raises: scrapy.exceptions.DropItem if the url is unable to be retrieved
                  or if ingredients are not found in the retrieved page.
         """
-
         try:
-            page = urllib2.urlopen(item['url']).read()
+            # Bypass user-agent filtering
+            req = urllib2.Request(item['url'], headers={'User-Agent' : 'Mozilla/5.0'})
+            page = urllib2.urlopen(req).read()
+        except TypeError:
+            raise scrapy.exceptions.DropItem("No object received this time.")
         except:
-            log.msg("Couldn't open %s. Will retry in 10s." % (item['url'],),
-                    level=log.WARNING)
+            logging.info("Couldn't open %s. Will retry in 10s." % (item['url'],))
             sleep(10)
+            req = urllib2.Request(item['url'], headers={'User-Agent' : 'Magic Browser'})
+            page = urllib2.urlopen(req).read()
+        else:
+            title_m = re.search('<title>(?P<title>.*?)</title>', page)
             try:
-                page = urllib2.urlopen(item['url']).read()
-            except:
-                raise scrapy.exceptions.DropItem(
-                    "Unable to download recipe from %s"
-                    % (item['url'], ))
-        finally:
-            title= re.search('<title>(?P<title>.*?)</title>', page)
-            try:
-                item['title'] = title.group('title')
+                item['title'] = title_m.group('title')
             except Exception as e:
-                log.msg("Page %s has no title" % (item['url']), level=log.ERROR)
-                title = "Untitled"
+                logging.info("Page %s has no title" % (item['url']))
+
             for h in self.heur:
                 results = h(page)
                 if results:
@@ -193,20 +188,13 @@ class ExtractIngredientsPipeline(object):
 
 
 class MongoWriterPipeline(object):
-    def __init__(self, s=None):
+    def __init__(self, s):
         try:
-            if s:
-                conn = pymongo.MongoClient(s['MONGODB_SERVER'],
-                                           s['MONGODB_PORT'])
-                db = conn[s['MONGODB_DB']]
-            else:
-                conn = pymongo.MongoClient(settings['MONGODB_SERVER'],
-                                           settings['MONGODB_PORT'])
-                db = conn[settings['MONGODB_DB']]
-                db.authenticate(settings['MONGODB_USER'],
-                                settings['MONGODB_PW'])
-            self.coll = db[settings['MONGODB_COLLECTION']]
-            self.possibles = db[settings['MONGODB_DROPPED_DB']]
+            conn = pymongo.MongoClient(s['MONGODB_SERVER'], s['MONGODB_PORT'])
+            db = conn[s['MONGODB_DB']]
+            db.authenticate(s['MONGODB_USER'], s['MONGODB_PW'])
+            self.coll = db[s['MONGODB_COLLECTION']]
+            self.possibles = db[s['MONGODB_DROPPED_DB']]
         except pymongo.errors.ConnectionFailure:
             log.msg("Could not connect to mongodb %s:%d"
                     % (s['MONGODB_SERVER'], s['MONGODB_PORT']),
@@ -214,7 +202,7 @@ class MongoWriterPipeline(object):
 
     def process_item(self, item, spider):
         """
-        Inserts item in to a MongoDB
+        Inserts item into a MongoDB
         """
         item['is_indexed'] = False
         for i in range(5):
@@ -228,8 +216,7 @@ class MongoWriterPipeline(object):
                         "Unable to find ingredients in %s for spider %s" %
                         (item['url'], spider))
             except pymongo.errors.AutoReconnect:
-                log.msg("Reconnection attempt %d" % (i,),
-                        level=log.WARNING)  # Change to logging
+                log.msg("Reconnection attempt %d" % (i,), level=log.WARNING) # Change to logging
         raise scrapy.exceptions.DropItem(
             "Could not insert %s in spider %s into mongoDB"
             % (item['url'], spider))
@@ -237,12 +224,10 @@ class MongoWriterPipeline(object):
 
 ########## TESTS ##########
 def MongoWriterPipeline_test():
-    import items
-
-    dbsettings = {'MONGODB_SERVER': '127.0.0.1', 'MONGODB_PORT': 27017,
-                  'MONGODB_DB': 'recipemaker',
-                  'MONGODB_COLLECTION': 'recipeURLs'}
-    item = items.RecipeItem()
+    import hb_items
+    dbsettings = {'MONGODB_SERVER':'127.0.0.1', 'MONGODB_PORT':27017,
+                  'MONGODB_DB':'recipemaker', 'MONGODB_COLLECTION':'recipeURLs'}
+    item = hb_items.recipeItem()
     item['url'] = 'http://www.test.com'
     item['title'] = 'test title'
     item['ingred'] = ('first ingred', 'second ingred', 'third ingred')
@@ -266,27 +251,21 @@ def ExtractIngredientsPipeline_test():
 
 
 def ExtractFromli_test():
-    from items import RecipeItem
-
-    item = RecipeItem()
+    from hb_items import recipeItem
+    item = recipeItem()
     k = ExtractIngredientsPipeline()
-    item[
-        'url'] = 'http://naturallyella.com/2013/05/08/grilled-asparagus-and-chili-orange-quinoa-spring-rolls/'
+    item['url'] = 'http://naturallyella.com/2013/05/08/grilled-asparagus-and-chili-orange-quinoa-spring-rolls/'
 
     ExtractIngredientsPipeline.process_item(k, item, None)
 
-
 def ExtractFromSpan_test():
     # Test <span itemprop="ingredients"> tag extraction
-    import items
-
-    item1 = items.RecipeItem()
-    item1[
-        'url'] = 'http://www.kraftrecipes.com/recipes/creamy-citrus-chive-asparagus-114730.aspx'
+    import hb_items
+    item1 = hb_items.recipeItem()
+    item1['url'] = 'http://www.kraftrecipes.com/recipes/creamy-citrus-chive-asparagus-114730.aspx'
     extract = ExtractIngredientsPipeline()
     item = extract.process_item(item1, None)
     print item['ingred']
-
 
 if __name__ == '__main__':
     # MongoWriterPipeline_test()

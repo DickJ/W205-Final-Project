@@ -83,7 +83,6 @@ class Job(MRJob):
             yield "chicken" and "breast"
         """
 
-        # TODO is there a better way to get the tag?
         if re.search(r'span class="ingredient-name" id="lblIngName"',
                      self.previous_line):
             self.previous_line = line

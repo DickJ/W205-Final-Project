@@ -2,7 +2,7 @@ __author__ = 'Rich Johnson'
 
 from scrapy.contrib.spiders import CrawlSpider, Rule
 from scrapy.contrib.linkextractors import LinkExtractor
-from ..items import recipeItem
+from ..items import RecipeItem
 import re
 
 class FoodRepublicSpider(CrawlSpider):
@@ -10,9 +10,9 @@ class FoodRepublicSpider(CrawlSpider):
     allowed_domains = ['foodrepublic.com']
     start_urls = ["http://www.foodrepublic.com/recipes"]
     rules = (
-        Rule(LinkExtractor(allow=".*foodrepublic\.com/\d{4}/\d{2}/\d{2}/.*"),
+        Rule(LinkExtractor(allow=".*\.com/\d{4}/\d{2}/\d{2}/.*"),
               callback='parse_item'),
-        Rule(LinkExtractor(allow="http://www.foodrepublic\.com/recipes\?page=\d+"))
+        Rule(LinkExtractor(allow=".*/recipes\?.*page=\d+&?.*"))
     )
 
     def __init__(self):
@@ -20,7 +20,7 @@ class FoodRepublicSpider(CrawlSpider):
         self.seen_recipes = set()
 
     def parse_item(self, response):
-        item = recipeItem()
+        item = RecipeItem()
         item['url'] = response.url
         item['url'] = re.sub("\?.*", "", item['url'])
         if item['url'] not in self.seen_recipes:
