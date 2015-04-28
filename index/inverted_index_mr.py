@@ -1,6 +1,6 @@
 import mrjob
 from mrjob.job import MRJob
-import ast
+import json
 import re
 import nltk
 from nltk import PorterStemmer
@@ -40,35 +40,18 @@ def extract_key_ingred(ingredient):
            t not in english_sw]
     ps = PorterStemmer()
     tkn = [ps.stem(t) for t in tkn]
-    #tagged = nltk.pos_tag(tkn)
-    #key_words = [w for w,tag in tagged if tag != 'LS' and tag != 'CD']
-    #np = [w for w,tag in tagged if tag == 'NN'] # noun phrase
-    #np = ' '.join(np)
-    #if np not in key_words and len(np) > 0 and len(np.split()) <= 3:
-    #    key_words.append(np)
     return tkn
     
 class Indexing(MRJob):
     
     def mapper(self, _, line):
         if len(line) > 0:
-            l = clean_str(line)
-            data = ast.literal_eval(l)
-            uid, ingredients = data['_id'],data['ingred']
-            #tf = {}
-            #tpos = {}
-            #pos = 0
+            #l = clean_str(line)
+            data = json.loads(line.strip())
+            uid, ingredients = data['_id']['$oid'],data['ingred']
             for ingred in ingredients:
                 for term in extract_key_ingred(ingred):
                     yield (term, uid)
-                    #tf[term] = tf.get(term,0) + 1
-                    #if term in tpos:
-                    #    tpos[term].append(pos)
-                    #else:
-                    #    tpos[term] = [pos]
-                    #pos += 1
-                #for term in tf:
-                    #yield term, (url, tf[term], tpos[term], pos+1)
 
     def reducer(self, term, postings):
         p = []
@@ -76,11 +59,6 @@ class Indexing(MRJob):
             p.append(ps)
         yield (term, p)
     
-    #def steps(self):
-    #    return [MRStep(mapper=self.index_mapper,
-    #                   combiner = self.index_combiner,
-    #                   reducer=self.index_reducer)
-    #            ]
                        
 if __name__ == '__main__':
     Indexing.run()

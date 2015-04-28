@@ -523,7 +523,7 @@ miso
 mist
 mix
 mizuna
-moambé
+moambe
 molass
 monastery-styl
 monkfish
