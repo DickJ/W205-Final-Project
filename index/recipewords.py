@@ -1,14 +1,14 @@
-measures = ['ounce','ounces','cup','cups','pound','pounds','kilos',\
+measures = set(['ounce','ounces','cup','cups','pound','pounds','kilos',\
             'grams','gram','kilo','bag','bags','teaspoon',\
             'teaspoons','tablespoon','tablespoons','tbsp','tbsps',\
             'lbs','kg','kilogram','kilograms','can','cans',\
             'tsp','tsps','oz','pint','pt','pints','pack','packs','packed',\
-            'pinch']
+            'pinch'])
 
-methods = ['grounded','crushed','chopped', 'cored', 'peeled', 'sliced',\
+methods = set(['grounded','crushed','chopped', 'cored', 'peeled', 'sliced',\
            'squeezed','diced','divided','softened','thawed','needed',\
            'drained','rinsed','beaten','husked','cleaned','mashed','melted',\
-           'dried','processed','grated','frying','chop','chuncked','chunk']
+           'dried','processed','grated','frying','chop','chuncked','chunk'])
 
 fullIngredients = """abalon
 absinth

@@ -7,21 +7,14 @@ from nltk import PorterStemmer
 from nltk.tokenize import RegexpTokenizer
 from recipewords import fullIngredients, measures, methods
 
-def clean_str(line):
-    line = line.strip()
-    line = line.replace('\\t','')
-    line = line.replace('\\n','')
-    line = line.replace('\\r','')
-    return line
-
 def patch_ingred(ingredient):
-    ingredient = ingredient.replace("&#174","")
-    ingredient = re.sub(r'-','',ingredient)
+    ingredient = ingredient.replace("&#174",' ')
+    ingredient = re.sub(r'-',' ',ingredient)
     ingredient = re.sub(r'[\xf1]','n',ingredient)
     ingredient = re.sub(r'[^\x00-\x7F]',' ', ingredient)
-    ingredient = re.sub(r'&nbsp','',ingredient)
-    ingredient = re.sub(r'&#[0-9]+','',ingredient)
-    ingredient = re.sub(r'&nbsp|&rarr|&larr','',ingredient)
+    ingredient = re.sub(r'&nbsp',' ',ingredient)
+    ingredient = re.sub(r'&#[0-9]+',' ',ingredient)
+    ingredient = re.sub(r'&nbsp|&rarr|&larr',' ',ingredient)
     return ingredient
 
 english_sw = nltk.corpus.stopwords.words('english')
@@ -46,7 +39,6 @@ class Indexing(MRJob):
     
     def mapper(self, _, line):
         if len(line) > 0:
-            #l = clean_str(line)
             data = json.loads(line.strip())
             uid, ingredients = data['_id']['$oid'],data['ingred']
             for ingred in ingredients:
